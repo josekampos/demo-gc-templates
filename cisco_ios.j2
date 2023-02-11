@@ -285,13 +285,28 @@ ip sla schedule 200 life forever start-time now
 !
 {% include './ios/syslog.j2' %}
 !
+{% include './ios/mngacl.j2' %}
+!
+!
+route-map Set_Local_preference permit 10
+ match ip address 20
+ set local-preference 120
+!
+route-map Set_Local_preference permit 20
 !
 {% include './ios/snmp.j2' %}
+!
+mpls ldp router-id Loopback0
+!
+radius-server deadtime 5
 !
 !
 !
 control-plane
 !
+banner login ^CCC
+================================================================
+^C
 !
 !
 !
@@ -300,11 +315,10 @@ alias exec ntcclear clear platform software vnic-if nv
 !
 {% include './ios/console_vty.j2' %}
 !
+exception crashinfo file bootflash:crashinfo
+no ntp allow mode control 0
 {% include './ios/ntp.j2' %}
 !
 !
 !
-!
-!
-{% include './ios/services.j2' %}
 end
