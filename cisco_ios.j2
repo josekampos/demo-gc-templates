@@ -71,11 +71,7 @@ clock timezone PRT 0 0
 clock summer-time PT recurring last Sun Mar 1:00 last Sun Oct 2:00
 !
 !
-!
-!
-!
 {% include './ios/dns.j2' %}
-!
 !
 !
 login block-for 300 attempts 5 within 60
@@ -125,7 +121,8 @@ redundancy
 !
 !
 !
-!
+transceiver type all
+ monitoring
 !
 {% if config_context["lldp"] == true %}
 lldp run
@@ -135,34 +132,141 @@ cdp run
 {% endif %}
 !
 ! 
+track 1 interface GigabitEthernet0/0/23 line-protocol
+!
+!
+class-map match-all Class_Match_All_IN
+  description Classificar Trafego Real Time a Entrada
+ match access-group 10
+class-map match-any Class_Silver
+ match mpls experimental topmost 2
+ match mpls experimental topmost 3
+ match ip precedence 2
+ match ip precedence 3
+class-map match-any Class_Gold
+ match mpls experimental topmost 4
+ match mpls experimental topmost 6
+ match mpls experimental topmost 7
+ match ip precedence 4
+ match ip precedence 6
+ match ip precedence 7
+class-map match-any Class_Bronze
+ match ip precedence 1
+ match mpls experimental topmost 1
+class-map match-any Class_Real_Time
+ match mpls experimental topmost 5
+ match ip precedence 5
+!
+policy-map QUEUE_WAN_OUT_2
+ class Class_Real_Time
+  priority percent 10
+ class Class_Gold
+  bandwidth percent 40
+ class Class_Silver
+  bandwidth percent 30
+ class Class_Bronze
+  bandwidth percent 15
+ class class-default
+  bandwidth percent 5
+policy-map SHAPE_48
+ class class-default
+  shape average 48000000
+   service-policy QUEUE_WAN_OUT_2
+policy-map Mark_Police_PT
+ class Class_Match_All_IN
+  set dscp af22
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_AL
+ class Class_Match_All_IN
+  set dscp cs4
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_CC
+ class Class_Match_All_IN
+  set dscp af21
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_RC
+ class Class_Match_All_IN
+  set dscp default
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_RI
+ class Class_Match_All_IN
+  set dscp af42
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_QS
+ class Class_Match_All_IN
+  set dscp af11
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_TL
+ class Class_Match_All_IN
+  set dscp af31
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_VI
+ class Class_Match_All_IN
+  set dscp af12
+policy-map Mark_Police_VZ
+ class Class_Match_All_IN
+  set dscp af41
+policy-map Mark_Police_SA
+ class Class_Match_All_IN
+  set dscp af13
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map SHAPE_600
+ class class-default
+  shape average 600000000
+   service-policy QUEUE_WAN_OUT_2
+policy-map Mark_Police_GO
+ class Class_Match_All_IN
+  set dscp af11
+  police 2000000 31250 conform-action transmit  exceed-action drop
+policy-map Mark_Police_GS
+ class Class_Match_All_IN
+  set dscp ef
+policy-map QUEUE_WAN_OUT
+ class Class_Real_Time
+  priority
+ class Class_Gold
+ class Class_Silver
+ class Class_Bronze
 !
 !
 !
 !
-!
-!
-!
-!
-!
-!
-!
-!
-! 
 ! 
 !
 !
 {% include './ios/interfaces.j2' %}
+!
+!
+!
+!
+router ospf 100
+ router-id 1.1.1.1
+ auto-cost reference-bandwidth 10000
+ area 20 authentication message-digest
+ redistribute connected subnets
+ passive-interface Loopback0
+ network 100.0.0.120 0.0.0.0 area 20
+ network 100.0.4.126 0.0.0.0 area 20
+ network 100.0.4.129 0.0.0.0 area 20
+ mpls ldp sync
+!
+!
 {% if config_context["bgp"] is defined %}
 {% include './ios/bgp.j2' %}
 {% endif %}
 !
 !
-virtual-service csr_mgmt
-!
 ip forward-protocol nd
-ip http server
-ip http authentication local
-ip http secure-server
+ip telnet source-interface BDI10
+!
+no ip http server
+no ip http secure-server
+ip tftp source-interface BDI10
+ip ssh time-out 15
+ip ssh source-interface BDI10
+ip ssh version 2
+ip ssh precedence 4
+!
 !
 {% if config_context["routes"] is defined %}
 {% if config_context["routes"]["static"] is defined %}
@@ -171,7 +275,12 @@ ip http secure-server
 {% endfor %}
 {% endif %}
 {% endif %}
-ip scp server enable
+!
+ip sla 200
+ udp-jitter 100.0.0.7 5000 source-ip 10.0.0.120 codec g711ulaw
+ tag SXX-AR1_to_SXX-CR1_UdpJitter
+ frequency 300
+ip sla schedule 200 life forever start-time now
 !
 !
 {% include './ios/syslog.j2' %}
