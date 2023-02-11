@@ -10,6 +10,7 @@ interface {{ interface["name"] }}
 {% endfor %}
 {% else %}
  no ip address
+ load-interval 30
 {% endif %}
 {% if config_context["acl"] is defined %}
 {% if config_context["acl"]["interfaces"] is defined %}
@@ -22,7 +23,7 @@ interface {{ interface["name"] }}
  shutdown
 {% endif %}
  negotiation auto
- no mop enabled
- no mop sysid
+ cdp enable
+ mpls propagate-cos
 !
 
