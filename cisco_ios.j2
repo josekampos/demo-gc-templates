@@ -1,13 +1,18 @@
 !
 !
-version 17.1
-service timestamps debug datetime msec
-service timestamps log datetime msec
-! Call-home is enabled by Smart-Licensing.
-service call-home
-platform qfp utilization monitor load 80
-platform punt-keepalive disable-kernel-core
-platform console serial
+version 16.9
+no service pad
+service tcp-keepalives-in
+service tcp-keepalives-out
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+service sequence-numbers
+no platform punt-keepalive disable-kernel-core
+platform bfd-debug-trace 1
+platform xconnect load-balance-hash-algo mac-ip-instanceid
+platform tcam-parity-error enable
+platform tcam-threshold alarm-frequency 1
 !
 {% include './ios/hostname.j2' %}
 !
@@ -15,7 +20,7 @@ boot-start-marker
 boot-end-marker
 !
 !
-vrf definition MANAGEMENT
+vrf definition Mgmt-intf
  !
  address-family ipv4
  exit-address-family
@@ -24,15 +29,46 @@ vrf definition MANAGEMENT
  exit-address-family
 !
 logging userinfo
+logging buffered 50000
+enable secret 8 ##################
 !
 {% if config_context["aaa-new-model"] == false %}
 no aaa new-model
 {% else %}
+!
 aaa new-model
+!
+!
+aaa group server tacacs+ AUTH_TACACS
+ server-private 1.1.1.1 key 7 4343434343343434
+ server-private 2.2.2.2 key 7 4343434343343434
+ ip vrf forwarding TBD
+ ip tacacs source-interface BDI10
+!
+aaa authentication login LOGIN_AUTH local
+aaa authentication login CONSOLE local
+aaa authentication login VTY group AUTH_TACACS local
+aaa authentication enable default enable
+aaa authentication dot1x default group ISE
+aaa authorization console
+aaa authorization config-commands
+aaa authorization exec default local
+aaa authorization exec VTY group AUTH_TACACS local if-authenticated
+aaa authorization commands 1 VTY group AUTH_TACACS local if-authenticated
+aaa authorization commands 15 VTY group AUTH_TACACS local if-authenticated
+aaa authorization network default group ISE
+aaa accounting dot1x default start-stop group ISE
+aaa accounting exec default start-stop group AUTH_TACACS
+aaa accounting commands 1 default start-stop group AUTH_TACACS
+aaa accounting commands 15 default start-stop group AUTH_TACACS
+!
+!
+!
+aaa session-id common
 {% endif %}
-{% include "./ios/call_home.j2" %}
 !
-!
+clock timezone PRT 0 0
+clock summer-time PT recurring last Sun Mar 1:00 last Sun Oct 2:00
 !
 !
 !
