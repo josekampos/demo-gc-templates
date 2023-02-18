@@ -1,5 +1,5 @@
 !
-router ospf {{ obj.site.custom_fields.ospf_area_id }}
+router ospf {{ obj.site.ospf_area_id }}
  router-id 1.1.1.1
  auto-cost reference-bandwidth 10000
  area 20 authentication message-digest
