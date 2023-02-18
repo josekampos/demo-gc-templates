@@ -1,5 +1,5 @@
 !
-router ospf {{ interface["name"] }}
+router ospf 100
  router-id 1.1.1.1
  auto-cost reference-bandwidth 10000
  area 20 authentication message-digest
@@ -10,3 +10,8 @@ router ospf {{ interface["name"] }}
  network 100.0.4.129 0.0.0.0 area 20
  mpls ldp sync
  !
+ interface {{ interface["name"] }}
+ !
+ 
+ 
+ 
