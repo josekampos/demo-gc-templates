@@ -239,7 +239,7 @@ policy-map QUEUE_WAN_OUT
 !
 !
 !
-router ospf 100
+router ospf {{ custom_fields["ospf_area_id"] }}
  router-id 1.1.1.1
  auto-cost reference-bandwidth 10000
  area 20 authentication message-digest
