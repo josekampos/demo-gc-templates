@@ -1,5 +1,6 @@
 !
 router ospf {{ obj.site.asn }}
+router ospf {{ data['device']['name'] }}
  router-id 1.1.1.1
  auto-cost reference-bandwidth 10000
  area 20 authentication message-digest
